@@ -51,8 +51,7 @@ def import_from_path(context, base_content_path: str, retain_armature: bool = Fa
         if shader_path not in sys.path:
             sys.path.append(shader_path)
 
-        shader_scripts = [f for f in listdir(shader_path) if isfile(
-            join(shader_path, f)) if f.endswith('.py')]
+        shader_scripts = [f for f in listdir(shader_path) if isfile(join(shader_path, f)) if f.endswith('.py')]
         imported_shaders = []  # Future usage
 
         for shader_script in shader_scripts:
@@ -61,8 +60,7 @@ def import_from_path(context, base_content_path: str, retain_armature: bool = Fa
 
             if bpy.data.node_groups.get(shader_name) is None:
                 shader_py = importlib.import_module(shader_script[:-3])
-                shader_node_group = shader_py.create_test_group(
-                    context, context, shader_name, base_content_path)
+                shader_node_group = shader_py.create_test_group(context, context, shader_name, base_content_path)
                 imported_shaders.append(shader_node_group)
 
         if is_model:
@@ -71,23 +69,19 @@ def import_from_path(context, base_content_path: str, retain_armature: bool = Fa
 
             model_path = join(base_content_path, 'model.dae')
             if exists(model_path):
-                bpy.ops.wm.collada_import(
-                    filepath=model_path, auto_connect=True, find_chains=True)
+                bpy.ops.wm.collada_import(filepath=model_path, auto_connect=True, find_chains=True)
 
             # compile a list of all objects that were added by the import
-            new_objects = [object for object in list(
-                bpy.data.objects) if object.name not in prior_objects]
+            new_objects = [object for object in list(bpy.data.objects) if object.name not in prior_objects]
 
             if not retain_armature:
                 # delete imported armature
-                new_armatures = [
-                    object for object in new_objects if object.type == 'ARMATURE']
+                new_armatures = [object for object in new_objects if object.type == 'ARMATURE']
                 bpy.ops.object.delete({"selected_objects": new_armatures})
 
             if clean_meshes:
                 # find all imported meshes
-                new_meshes = [object for object in list(
-                    bpy.data.objects) if object.type == 'MESH' if object.name not in prior_objects]
+                new_meshes = [object for object in list(bpy.data.objects) if object.type == 'MESH' if object.name not in prior_objects]
 
                 # select all new_meshes
                 bpy.ops.object.mode_set(mode='OBJECT')
@@ -153,8 +147,7 @@ class ImportRequestHandler(bpy.types.Operator):
 
             # Start the http server
             self.server = ThreadingHTTPServer(ADDRESS, HTTPRequestHandler)
-            self.server_thread = threading.Thread(
-                target=self.server.serve_forever, name='DAREBC_server')
+            self.server_thread = threading.Thread(target=self.server.serve_forever, name='DAREBC_server')
             self.server_thread.start()
             print('DARE BC server started')
 

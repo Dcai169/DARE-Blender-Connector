@@ -59,9 +59,13 @@ def import_from_path(context, base_content_path: str, retain_armature: bool = Fa
             shader_name = get_shader_name(script_path)
 
             if bpy.data.node_groups.get(shader_name) is None:
-                shader_py = importlib.import_module(shader_script[:-3])
-                shader_node_group = shader_py.create_test_group(context, context, shader_name, base_content_path)
-                imported_shaders.append(shader_node_group)
+                try:
+                    shader_py = importlib.import_module(shader_script[:-3])
+                    shader_node_group = shader_py.create_test_group(context, context, shader_name, base_content_path)
+                    imported_shaders.append(shader_node_group)
+                except Exception as e:
+                    print(f'Failed to import shader {shader_name} from {script_path}')
+                    print(e)
 
         if is_model:
             # compile a list of all objects in the scene

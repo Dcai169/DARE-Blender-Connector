@@ -63,9 +63,10 @@ def import_from_path(context, base_content_path: str, retain_armature: bool = Fa
                     shader_py = importlib.import_module(shader_script[:-3])
                     shader_node_group = shader_py.create_test_group(context, context, shader_name, base_content_path)
                     imported_shaders.append(shader_node_group)
-                except Exception as e:
-                    print(f'Failed to import shader {shader_name} from {script_path}')
+                except Exception as e: # 'NoneType' object has no attribute 'active_material'
+                    print(f'Failed to import shader {shader_name}')
                     print(e)
+                    print()
 
         if is_model:
             # compile a list of all objects in the scene
@@ -73,15 +74,22 @@ def import_from_path(context, base_content_path: str, retain_armature: bool = Fa
 
             model_path = join(base_content_path, 'model.dae')
             if exists(model_path):
+                print(f'Importing model from {model_path}')
                 bpy.ops.wm.collada_import(filepath=model_path, auto_connect=True, find_chains=True)
+                print()
 
             # compile a list of all objects that were added by the import
             new_objects = [object for object in list(bpy.data.objects) if object.name not in prior_objects]
 
             if not retain_armature:
-                # delete imported armature
-                new_armatures = [object for object in new_objects if object.type == 'ARMATURE']
-                bpy.ops.object.delete({"selected_objects": new_armatures})
+                try:
+                    # delete imported armature
+                    new_armatures = [object for object in new_objects if object.type == 'ARMATURE']
+                    bpy.ops.object.delete({"selected_objects": new_armatures})
+                except Exception as e:
+                    print(f'Failed to delete imported armature')
+                    print(e)
+                    print()
 
             if clean_meshes:
                 # find all imported meshes
@@ -96,10 +104,15 @@ def import_from_path(context, base_content_path: str, retain_armature: bool = Fa
                 bpy.ops.object.mode_set(mode='EDIT')
                 bpy.ops.mesh.select_all(action='SELECT')
 
-                # remove extra vertices
-                bpy.ops.mesh.delete_loose()
-                bpy.ops.mesh.select_all(action='SELECT')
-                bpy.ops.mesh.remove_doubles()
+                try:
+                    # remove extra vertices
+                    bpy.ops.mesh.delete_loose()
+                    bpy.ops.mesh.select_all(action='SELECT')
+                    bpy.ops.mesh.remove_doubles()
+                except Exception as e:
+                    print(f'Failed to clean meshes')
+                    print(e)
+                    print()
 
                 # deselect everything
                 bpy.ops.mesh.select_all(action='DESELECT')
@@ -165,6 +178,8 @@ class ImportRequestHandler(bpy.types.Operator):
             # but if context is stored in a global variable, it is not
             global _CONTEXT
             _CONTEXT = context
+            print('DARE BC context stored')
+            print()
 
             return {'FINISHED'}
         except Exception as e:

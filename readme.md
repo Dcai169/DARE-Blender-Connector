@@ -12,7 +12,7 @@ Allows for one-click model ripping from [DARE](https://github.com/Dcai169/Destin
 ## Manual Installation Instructions
 
 1. Close all instances of Blender.
-2. Copy `dare_bc.py` to `%APPDATA%\Blender Foundation\Blender\3.0\scripts\addons` (Windows) or `~/.config/blender/3.0/` (Linux).
+2. Copy `dare_bc.py` to `%APPDATA%\Blender Foundation\Blender\3.0\scripts\addons` (Windows) or `~/.config/blender/3.0/scripts/addons` (Linux).
 3. Enable DARE Blender Connector in DARE settings.
 
 ### Stretch Goals

@@ -52,6 +52,7 @@ def import_from_path(context, base_content_path: str, retain_armature: bool = Fa
             sys.path.append(shader_path)
 
         shader_scripts = [f for f in listdir(shader_path) if isfile(join(shader_path, f)) if f.endswith('.py')]
+        print(f'Found {len(shader_scripts)} shader scripts')
         imported_shaders = []  # Future usage
 
         for shader_script in shader_scripts:
@@ -62,6 +63,8 @@ def import_from_path(context, base_content_path: str, retain_armature: bool = Fa
                 try:
                     shader_py = importlib.import_module(shader_script[:-3])
                     shader_node_group = shader_py.create_test_group(context, context, shader_name, base_content_path)
+
+                    print(f'Imported shader {shader_name}.py')
                     imported_shaders.append(shader_node_group)
                 except Exception as e: # 'NoneType' object has no attribute 'active_material'
                     print(f'Failed to import shader {shader_name}')

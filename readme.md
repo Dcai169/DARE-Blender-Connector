@@ -8,6 +8,7 @@ Allows for one-click model ripping from [DARE](https://github.com/Dcai169/Destin
 * Deletes default armature.
 * Cleans loose vertices.
 * Imports shader `.py` files.
+  * If an item name includes a period (.), the shader script for that item will not be imported.
 
 ## Manual Installation Instructions
 

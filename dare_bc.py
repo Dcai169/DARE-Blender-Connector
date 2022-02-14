@@ -158,13 +158,13 @@ def import_from_path(context, base_content_path: str, retain_armature: bool = Fa
                 bpy.ops.object.mode_set(mode='OBJECT')
                 bpy.ops.object.select_all(action='DESELECT')
 
-            if compsite_textures:
-                if not HAS_PIL:
-                    print('PIL not installed, skipping texture compsite')
-                    print()
-                else:
-                    hd_texture_path = join(base_content_path, 'HD_Textures')
-                    if exists(hd_texture_path):
+            hd_texture_path = join(base_content_path, 'HD_Textures')
+            if exists(hd_texture_path):
+                if compsite_textures:
+                    if not HAS_PIL:
+                        print('PIL not installed, skipping texture compsite')
+                        print()
+                    else:
                         for folder in [join(hd_texture_path, f, 'textures') for f in listdir(hd_texture_path) if not isfile(join(hd_texture_path, f))]:
                             textures = {
                                 'Diffuse': [],

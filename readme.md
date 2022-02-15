@@ -11,6 +11,11 @@ Allows for one-click model ripping from [DARE](https://github.com/Dcai169/Destin
   * If an item name includes a period (.), the shader script for that item will not be imported.
 * Composites HD texture plates into one image.
 
+## Prerequisites
+* DARE >= v1.6.2
+* DARE Blender Connector >= 1.0.0
+* DCG >= v1.7.10
+
 ## Manual Installation Instructions
 
 1. Launch Blender as an administrator.

@@ -13,7 +13,7 @@ Allows for one-click model ripping from [DARE](https://github.com/Dcai169/Destin
 
 ## Prerequisites
 * DARE >= v1.6.2
-* DARE Blender Connector >= 1.0.0
+* DARE Blender Connector >= v1.0.0
 * DCG >= v1.7.10
 
 ## Manual Installation Instructions

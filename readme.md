@@ -9,6 +9,7 @@ Allows for one-click model ripping from [DARE](https://github.com/Dcai169/Destin
 * Cleans loose vertices.
 * Imports shader `.py` files.
   * If an item name includes a period (.), the shader script for that item will not be imported.
+* Composites HD texture plates into one image.
 
 ## Manual Installation Instructions
 

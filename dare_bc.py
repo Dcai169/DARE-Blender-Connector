@@ -9,11 +9,13 @@ import importlib
 import re
 import sys
 import threading
+from xml.etree import ElementTree as ET
 
 _CONTEXT = None
 PORT = 41786
 ADDRESS = ('localhost', PORT)
 HAS_PIL = False
+HAS_WORKING_ARMATURES = [3317538576, 39, 43, 153950757, 153950761, 13, 6, 1504945536, 12]
 
 try:
     from PIL import Image
@@ -22,17 +24,84 @@ except ImportError:
     pass
 
 globals()['DARE_BC_Path'] = None
+globals()['DARE_BC_Type'] = None
+
 bl_info = {
     "name": "DARE Blender Connector",
     "description": "DARE Blender Connector",
     "author": "Daniel Cai",
     "location": "File > Import",
-    "version": (1, 0, 0),
+    "version": (1, 0, 1),
     "blender": (3, 0, 0),
     "wiki_url": "https://github.com/Dcai169/DARE-Blender-Connector",
     "support": "COMMUNITY",
     "category": "Import-Export",
 }
+
+
+def import_collada_with_normals(context, path: str):
+    bpy.ops.wm.collada_import(filepath=path)
+    print("Importing normals...")
+    tree = ET.parse(path)
+    COLLADA = tree.getroot()
+
+    library_geometries = COLLADA.find("./{http://www.collada.org/2005/11/COLLADASchema}library_geometries")
+    library_controllers = COLLADA.find("./{http://www.collada.org/2005/11/COLLADASchema}library_controllers")
+    library_visual_scenes = COLLADA.find("./{http://www.collada.org/2005/11/COLLADASchema}library_visual_scenes")
+    visual_scene = library_visual_scenes.find("./{http://www.collada.org/2005/11/COLLADASchema}visual_scene")
+
+    normals = {"objectname": "objectnormals"}
+
+    for node in visual_scene.iter("{http://www.collada.org/2005/11/COLLADASchema}node"):
+        number_with_name = 0
+        for object in bpy.context.selected_objects:
+            if node.attrib["name"] == object.name:
+                number_with_name += 1
+        if number_with_name == 0:
+            continue
+
+        # Locate geometry for scene node
+        instance_geometry = node.find("./{http://www.collada.org/2005/11/COLLADASchema}instance_geometry")
+        mesh_id = ""
+        if instance_geometry is None:
+            instance_controller = node.find("./{http://www.collada.org/2005/11/COLLADASchema}instance_controller")
+            if instance_controller is None:
+                continue
+            
+            controller_id = instance_controller.attrib["url"].replace("#", "")
+            controller = library_controllers.find("./{http://www.collada.org/2005/11/COLLADASchema}controller[@id='"+controller_id+"']")
+            mesh_id = controller.find("./{http://www.collada.org/2005/11/COLLADASchema}skin").attrib["source"].replace("#", "")
+        else:
+            mesh_id = instance_geometry.attrib["url"].replace("#", "")
+        geometry = library_geometries.find("./{http://www.collada.org/2005/11/COLLADASchema}geometry[@id='"+mesh_id+"']")
+
+        # Pick out normals
+        mesh = geometry.find("./{http://www.collada.org/2005/11/COLLADASchema}mesh")
+        triangles = mesh.find("./{http://www.collada.org/2005/11/COLLADASchema}triangles")
+        normal_input = triangles.find("./{http://www.collada.org/2005/11/COLLADASchema}input[@semantic='NORMAL']")
+        if normal_input is None:
+            print("{0} has no custom normals.".format(node.attrib["name"]))
+            continue
+
+        normal_id = normal_input.attrib["source"].replace("#", "")
+        normal_source = mesh.find("./{http://www.collada.org/2005/11/COLLADASchema}source[@id='"+normal_id+"']")
+        normals[node.attrib["name"]] = normal_source.find("./{http://www.collada.org/2005/11/COLLADASchema}float_array").text.split()
+
+        for object in bpy.context.selected_objects:
+            if node.attrib["name"] != object.name:
+                continue
+
+            formatted_normals = [[0, 0, 0]for i in range(len(normals[node.attrib["name"]])//3)]
+            for i in range(len(normals[node.attrib["name"]])):
+                formatted_normals[i//3][i % 3] = float(normals[node.attrib["name"]][i])
+
+            bpy.context.view_layer.objects.active = object
+            bpy.ops.mesh.customdata_custom_splitnormals_add()
+            object.data.use_auto_smooth = True
+
+            object.data.normals_split_custom_set_from_vertices(formatted_normals)
+
+            print("Imported normals for {0}.".format(object.name))
 
 
 def install_pip_package(package_name: str):  # requires admin rights
@@ -102,6 +171,8 @@ def import_from_path(context, base_content_path: str, retain_armature: bool = Fa
 
                     print(f'Imported shader {shader_name}.py')
                     imported_shaders.append(shader_node_group)
+
+                    shader_node_group.fakeUser = 1
                 except Exception as e:  # 'NoneType' object has no attribute 'active_material'
                     print(f'Failed to import shader {shader_name}')
                     print(e)
@@ -114,7 +185,7 @@ def import_from_path(context, base_content_path: str, retain_armature: bool = Fa
             model_path = join(base_content_path, 'model.dae')
             if exists(model_path):
                 print(f'Importing model from {model_path}')
-                bpy.ops.wm.collada_import(filepath=model_path, auto_connect=True, find_chains=True)
+                import_collada_with_normals(model_path)
                 print()
 
             # compile a list of all objects that were added by the import
@@ -217,6 +288,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         if self.path == '/':
             if exists(self.headers['X-Content-Path']):
                 globals()['DARE_BC_Path'] = self.headers['X-Content-Path']
+                try:
+                    globals()['DARE_BC_Type'] = self.headers['X-Content-Type']
+                except KeyError:
+                    pass
 
                 self.send_response(202)
             else:
@@ -237,6 +312,7 @@ class ImportRequestHandler(bpy.types.Operator):
     def execute(self, context):
         try:
             globals()['DARE_BC_Path'] = None
+            globals()['DARE_BC_Type'] = None
 
             # Start the http server
             self.server = ThreadingHTTPServer(ADDRESS, HTTPRequestHandler)
@@ -268,8 +344,17 @@ class ImportRequestHandler(bpy.types.Operator):
             global _CONTEXT
             base_content_path = globals()['DARE_BC_Path']
             if base_content_path is not None and _CONTEXT is not None:
-                import_from_path(_CONTEXT, base_content_path)
+                retain_armature = False
+                if (globals()['DARE_BC_Type'] != 'undefined' or globals()['DARE_BC_Type'] is not None):
+                    for working_item_category in [str(item_category) for item_category in HAS_WORKING_ARMATURES]:
+                        if (working_item_category in globals()['DARE_BC_Type']):
+                            retain_armature = True
+                            break
+
+                import_from_path(_CONTEXT, base_content_path, retain_armature=retain_armature)
+
                 globals()['DARE_BC_Path'] = None
+                globals()['DARE_BC_Type'] = None
         except Exception as e:
             print('Error in DARE BC data monitor')
             print(e)
